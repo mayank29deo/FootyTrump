@@ -36,12 +36,15 @@ Monorepo mirroring the cricket project, with **one improvement**: a shared, fram
 footbal-trumpcard/
 ├── package.json              # root: `concurrently` dev script (server + client)
 ├── vercel.json               # SPA rewrite for the client build
-├── shared/
-│   └── engine/               # ⭐ pure ESM rules engine — ONE source of truth
-│       ├── constants.js      # STATS, STAT_MAX, STAT_LABELS, RARITY_POINTS
-│       ├── game.js           # createGame, dealHands, selectCardAndStat, selectOpponentCard, resolveRound, win checks
-│       ├── bot.js            # botPickActive / botPickOpponent (difficulty-aware)
-│       └── *.test.js         # Vitest unit tests (TDD target)
+├── shared/                   # ⭐ ONE source of truth, imported by BOTH client & server
+│   ├── engine/               # pure ESM rules engine
+│   │   ├── constants.js      # STATS, STAT_MAX, STAT_LABELS, RARITY_POINTS
+│   │   ├── game.js           # createGame, dealHands, selectCardAndStat, selectOpponentCard, resolveRound, win checks
+│   │   ├── bot.js            # botPickActive / botPickOpponent (difficulty-aware)
+│   │   ├── decks.js          # DECKS map keyed by deckType (international now; epl/laliga later)
+│   │   └── *.test.js         # Vitest unit tests (TDD target)
+│   └── data/
+│       └── players.international.js   # curated roster (~50–60 players)
 ├── client/                   # React 18 + Vite + Tailwind + Zustand + React Router v6
 │   ├── vercel deploy target
 │   └── src/{components,pages,store,lib,data,styles}
@@ -115,7 +118,7 @@ When a stat is used in a round, it is appended to that card's `usedStats`. A car
 ### 4.6 Decks
 
 - **v1 deck: `international`** — national-team career stats.
-- Deck system (`DECKS` map keyed by `deckType`) supports adding **`epl`** and **`laliga`** decks later with no rule changes. `deckType` is chosen at room/solo creation (default `international`).
+- Deck system (`DECKS` map in `shared/engine/decks.js`, keyed by `deckType`) supports adding **`epl`** and **`laliga`** decks later with no rule changes. `deckType` is chosen at room/solo creation (default `international`).
 
 ---
 
@@ -169,7 +172,7 @@ Copied from cricket: `VITE_SERVER_URL` (Railway) primary + fallback URL, transpo
 - Composition: **~8–10 goalkeepers**, remainder spread across DEF/MID/FWD; multiple nations (Argentina, Brazil, France, Germany, Italy, Spain, Portugal, England, Netherlands, Uruguay, …).
 - Rarity spread (approx): ~10 legendary / ~15 epic / ~18 rare / rest common.
 - Stats are **approximate international (national-team) career figures**, not official — playable day one; numbers can be corrected later.
-- Stored in `client/src/data/players.international.js` and imported by the server (shared module).
+- Stored in `shared/data/players.international.js` and imported by **both** client and server (same module — no duplication).
 
 > **Accuracy caveat:** hand-curated stats are best-effort approximations. A later pass can replace them with verified figures or a dataset import.
 
