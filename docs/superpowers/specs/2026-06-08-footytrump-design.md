@@ -113,9 +113,16 @@ When a stat is used in a round, it is appended to that card's `usedStats`. A car
 
 - **Hand score** = sum of `points` of cards in hand.
 - **Game ends** when one player holds all cards (others eliminated as their hands empty), **or** when the overall room timer expires — in which case the highest hand score wins.
-- Time options: **4 / 6 / 10 minutes** (server-authoritative countdown for online; local countdown for solo).
+- Time options: **4 / 6 / 8 minutes** (server-authoritative countdown for online; local countdown for solo).
 
-### 4.6 Decks
+### 4.6 Round & match timing (online)
+
+- **Overall room clock:** 4 / 6 / 8 minutes, chosen by the host. Server-authoritative; a `timer_tick` drives the on-screen countdown.
+- **Per-turn windows (30s + 30s):** each round gives the **active player 30s** to pick a card + stat, then **opponents 30s** to respond. A live per-phase countdown is shown; on timeout the server **auto-picks** via the engine (active → best available stat; opponents → best card for the stat).
+- **Dynamic round count:** rounds are **not fixed**. Fast play fits more rounds into the room clock; slow play fits fewer. The game runs round-after-round until the clock expires or one player holds every card.
+- **Last-round completion:** if the overall clock reaches 0 **mid-round**, the server sets a `pendingEnd` flag, lets the current round resolve **completely**, then ends the game (the final hand is never cut off). A `last_round_warning` fires at ~15s so players know the next round may be the last.
+
+### 4.7 Decks
 
 - **v1 deck: `international`** — national-team career stats.
 - Deck system (`DECKS` map in `shared/engine/decks.js`, keyed by `deckType`) supports adding **`epl`** and **`laliga`** decks later with no rule changes. `deckType` is chosen at room/solo creation (default `international`).
@@ -180,7 +187,10 @@ Copied from cricket: `VITE_SERVER_URL` (Railway) primary + fallback URL, transpo
 
 ## 8. Quiz section (Phase 2)
 
-Both modes are **solo, scored, with streaks** and a **local best-score leaderboard** (localStorage; Supabase optional later).
+The quiz has **two play surfaces**, both offering the same two game modes (Guess the Footballer + Multiple Choice):
+
+- **Solo practice** — single-player, scored with streaks + a **local best-score leaderboard** (localStorage). Good for warming up alone.
+- **Multiplayer rooms** — the **same create/join room system as the trump game** (6-char code, share link, up to 6 players). The **room owner picks the mode** (Guess-the-Footballer *or* Multiple Choice) at the lobby. Everyone answers the **same question simultaneously**; points are awarded by **speed of correct answer** (see 8.4).
 
 ### 8.1 Guess the Footballer ("bingo")
 
@@ -194,10 +204,25 @@ Both modes are **solo, scored, with streaks** and a **local best-score leaderboa
 - Question bank `{ q, options:[4], correctIndex, category, difficulty }` — **~40–60 authored** trivia questions (World Cups, records, the 2022 final, legends) **+ auto-generated stat questions** from the roster ("Who has more international goals — X or Y?").
 - 10 questions per round, **per-question timer** (~10s), **speed + streak bonuses**.
 
-### 8.3 Scoring & persistence
+### 8.3 Solo scoring & persistence
 
 - A Zustand `quizStore` tracks score, streak, lives/timer.
 - Best scores + longest streak persisted to **localStorage**; optional Supabase sync later.
+
+### 8.4 Multiplayer room scoring (speed-ranked)
+
+- All players in the room get the **same question** at the same moment; a per-question timer runs.
+- Points are awarded to **correct answers ranked by speed** (fastest first). Wrong answers and timeouts score **0**. The scale depends on player count (fastest correct is always 10):
+
+  | Players | Points by correct-answer speed rank |
+  |---|---|
+  | 2 | 10 · 6 |
+  | 3 | 10 · 7 · 4 |
+  | 4 | 10 · 8 · 5 · 2 |
+  | 5 | 10 · 8 · 6 · 3 · 1 |
+  | 6 | 10 · 8 · 6 · 4 · 2 · 0 |
+
+- Implemented as a pure `quizScore(playerCount, correctRank)` helper in `shared/engine` (TDD), reused by the server. A configurable number of questions per match; a running leaderboard updates each question; final standings at the end.
 
 ---
 
