@@ -1,0 +1,16 @@
+{
+  "name": "footytrump",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "client": "npm --prefix client run dev",
+    "dev": "npm run client"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0",
+    "vitest": "^2.1.8"
+  }
+}
