@@ -3,6 +3,7 @@ import { createServer } from 'http'
 import { Server } from 'socket.io'
 import cors from 'cors'
 import * as rm from './roomManager.js'
+import * as qm from './quizManager.js'
 
 const app = express()
 app.use(cors({ origin: '*' }))
@@ -13,10 +14,36 @@ const io = new Server(server, { cors: { origin: '*', methods: ['GET', 'POST'] },
 
 const phaseTimers = new Map() // code -> {tick, expire}
 const roomClocks = new Map()  // code -> interval
+const quizTimers = new Map()  // code -> {tick, expire}
 const REVEAL_MS = 2600
+const QUIZ_REVEAL_MS = 3500
 
 const clearPhase = (code) => { const t = phaseTimers.get(code); if (t) { clearInterval(t.tick); clearTimeout(t.expire); phaseTimers.delete(code) } }
 const stopClock = (code) => { const i = roomClocks.get(code); if (i) { clearInterval(i); roomClocks.delete(code) } }
+const clearQuiz = (code) => { const t = quizTimers.get(code); if (t) { clearInterval(t.tick); clearTimeout(t.expire); quizTimers.delete(code) } }
+
+// ── Quiz (multiplayer) flow ──────────────────────────────────────────────
+function sendQuestion(code) {
+  clearQuiz(code)
+  const room = rm.getRoom(code); if (!room?.quiz || room.quiz.phase !== 'question') return
+  const payload = qm.questionPayload(room)
+  io.to(code).emit('quiz_question', payload)
+  let left = payload.seconds
+  const tick = setInterval(() => { left -= 1; io.to(code).emit('quiz_tick', { left }) }, 1000)
+  const expire = setTimeout(() => finishQuestion(code), payload.seconds * 1000)
+  quizTimers.set(code, { tick, expire })
+}
+function finishQuestion(code) {
+  clearQuiz(code)
+  const room = rm.getRoom(code); if (!room?.quiz || room.quiz.phase !== 'question') return
+  const result = qm.scoreQuestion(room)
+  io.to(code).emit('quiz_result', { gained: result.gained, correctAnswer: result.answer, leaderboard: qm.leaderboard(room) })
+  setTimeout(() => {
+    const phase = qm.advance(room)
+    if (phase === 'ended') io.to(code).emit('quiz_ended', { leaderboard: qm.leaderboard(room) })
+    else sendQuestion(code)
+  }, QUIZ_REVEAL_MS)
+}
 
 function emitState(code) {
   const room = rm.getRoom(code); if (!room) return
@@ -83,11 +110,11 @@ function startClock(code) {
   roomClocks.set(code, interval)
 }
 
-const lobby = (room) => ({ code: room.code, hostId: room.hostId, timeOption: room.timeOption, deckType: room.deckType, phase: room.phase, players: room.players.map(p => ({ id: p.id, name: p.name, avatar: p.avatar, connected: p.connected })) })
+const lobby = (room) => ({ code: room.code, hostId: room.hostId, timeOption: room.timeOption, deckType: room.deckType, gameType: room.gameType, quizMode: room.quizMode, phase: room.phase, players: room.players.map(p => ({ id: p.id, name: p.name, avatar: p.avatar, connected: p.connected })) })
 
 io.on('connection', (socket) => {
-  socket.on('create_room', ({ player, timeOption, deckType }) => {
-    const room = rm.createRoom({ ...player, socketId: socket.id }, timeOption, deckType)
+  socket.on('create_room', ({ player, timeOption, deckType, gameType, quizMode }) => {
+    const room = rm.createRoom({ ...player, socketId: socket.id }, timeOption, deckType, gameType, quizMode)
     socket.join(room.code)
     socket.emit('room_created', { code: room.code, room: lobby(room), myId: player.id })
   })
@@ -105,12 +132,30 @@ io.on('connection', (socket) => {
   socket.on('start_game', ({ code, playerId }) => {
     const room = rm.getRoom(code)
     if (!room || room.hostId !== playerId) return socket.emit('error_msg', { message: 'Only host can start' })
+    if (room.players.length < 2) return socket.emit('error_msg', { message: 'Need at least 2 players' })
+
+    if (room.gameType === 'quiz') {
+      qm.startQuiz(room)
+      room.phase = 'playing'
+      io.to(code).emit('quiz_started', { mode: room.quiz.mode, players: room.players.map(p => ({ id: p.id, name: p.name })) })
+      sendQuestion(code)
+      return
+    }
+
     const res = rm.startGame(code)
     if (res.error) return socket.emit('error_msg', { message: res.error })
     io.to(code).emit('game_started', rm.publicState(rm.getRoom(code)))
     emitState(code)
     startClock(code)
     startActivePhase(code)
+  })
+
+  socket.on('submit_answer', ({ code, playerId, value }) => {
+    const room = rm.getRoom(code)
+    if (!room?.quiz || room.quiz.phase !== 'question') return
+    qm.recordAnswer(room, playerId, value, Date.now())
+    io.to(code).emit('answer_received', { playerId })
+    if (qm.everyoneAnswered(room)) finishQuestion(code)
   })
 
   socket.on('select_card_stat', ({ code, playerId, cardId, stat }) => {

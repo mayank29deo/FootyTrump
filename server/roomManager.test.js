@@ -18,6 +18,12 @@ describe('roomManager lifecycle', () => {
   it('defaults an invalid time option to 6', () => {
     expect(rm.createRoom(host, 99).timeOption).toBe(6)
   })
+  it('defaults to trump; accepts a quiz gameType + quizMode', () => {
+    expect(rm.createRoom(host, 6).gameType).toBe('trump')
+    const q = rm.createRoom(host, 6, 'international', 'quiz', 'guess')
+    expect(q.gameType).toBe('quiz')
+    expect(q.quizMode).toBe('guess')
+  })
   it('joins a second player; blocks a 7th and blocks join after start', () => {
     const room = rm.createRoom(host, 4)
     expect(rm.joinRoom(room.code, { id: 'p2', name: 'B', socketId: 's2' }).room.players).toHaveLength(2)

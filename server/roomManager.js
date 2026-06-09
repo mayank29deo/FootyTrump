@@ -18,7 +18,7 @@ function generateRoomCode() {
   return code
 }
 
-export function createRoom(host, timeOption, deckType = 'international') {
+export function createRoom(host, timeOption, deckType = 'international', gameType = 'trump', quizMode = 'mcq') {
   const code = generateRoomCode()
   const room = {
     code,
@@ -26,8 +26,11 @@ export function createRoom(host, timeOption, deckType = 'international') {
     players: [{ id: host.id, name: host.name, avatar: host.avatar ?? null, socketId: host.socketId, connected: true }],
     timeOption: VALID_TIMES.includes(timeOption) ? timeOption : 6,
     deckType,
+    gameType: gameType === 'quiz' ? 'quiz' : 'trump',
+    quizMode: quizMode === 'guess' ? 'guess' : 'mcq',
     phase: 'waiting',
     game: null,
+    quiz: null,
     pendingEnd: false,
     createdAt: Date.now(),
   }
