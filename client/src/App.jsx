@@ -4,6 +4,7 @@ import SoloSetup from './pages/SoloSetup.jsx'
 import SoloGame from './pages/SoloGame.jsx'
 import Lobby from './pages/Lobby.jsx'
 import OnlineGame from './pages/OnlineGame.jsx'
+import OnlineQuiz from './pages/OnlineQuiz.jsx'
 import Results from './pages/Results.jsx'
 import QuizHome from './pages/QuizHome.jsx'
 import GuessFootballer from './pages/GuessFootballer.jsx'
@@ -18,6 +19,7 @@ export default function App() {
       <Route path="/solo" element={<SoloGame />} />
       <Route path="/online" element={<Lobby />} />
       <Route path="/online/game" element={<OnlineGame />} />
+      <Route path="/online/quiz" element={<OnlineQuiz />} />
       <Route path="/quiz" element={<QuizHome />} />
       <Route path="/quiz/guess" element={<GuessFootballer />} />
       <Route path="/quiz/mcq" element={<QuizMcq />} />
