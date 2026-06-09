@@ -1,0 +1,26 @@
+// Guess-the-Footballer entries. `answer` is the surname the player builds from letter tiles.
+// `clues` are 3 hints, revealed progressively (hint 1 free).
+export const quizClues = [
+  { id: 1, answer: 'Messi', clues: ['I captained my country to World Cup glory in 2022.', 'I have won a record eight Ballon d\'Or awards.', 'A left-footed Argentine number 10 who starred for Barcelona.'] },
+  { id: 2, answer: 'Ronaldo', clues: ['I am the all-time top scorer in men\'s international football.', 'I captain Portugal and celebrate with a leaping "Siuuu".', 'I have played for Manchester United, Real Madrid and Juventus.'] },
+  { id: 3, answer: 'Zidane', clues: ['I was sent off for a headbutt in the 2006 World Cup final.', 'I scored twice in the 1998 final for France.', 'As a coach I won three straight Champions Leagues with Real Madrid.'] },
+  { id: 4, answer: 'Maradona', clues: ['I scored the "Hand of God" goal in 1986.', 'An Argentine number 10 who became a legend at Napoli.', 'My solo goal against England is called the goal of the century.'] },
+  { id: 5, answer: 'Neymar', clues: ['I am Brazil\'s all-time leading goalscorer.', 'I moved from Barcelona to PSG for a world-record fee.', 'Known for samba flair, step-overs and Selecao number 10.'] },
+  { id: 6, answer: 'Mbappe', clues: ['I won the World Cup with France aged just 19.', 'I scored a hat-trick in the 2022 World Cup final.', 'A blistering French forward who led PSG\'s attack.'] },
+  { id: 7, answer: 'Buffon', clues: ['I am a legendary Italian goalkeeper.', 'I won the 2006 World Cup with Italy.', 'I spent most of my career as Juventus\' number 1.'] },
+  { id: 8, answer: 'Casillas', clues: ['I captained Spain to the 2010 World Cup.', 'A Real Madrid goalkeeper nicknamed "San Iker".', 'My stoppage-time save on Robben sealed the 2010 final.'] },
+  { id: 9, answer: 'Ronaldinho', clues: ['A Brazilian magician with an unmistakable smile.', 'I won the 2002 World Cup and dazzled at Barcelona.', 'Famous for no-look passes and elastico dribbles.'] },
+  { id: 10, answer: 'Pirlo', clues: ['An elegant Italian deep-lying playmaker.', 'I won the 2006 World Cup and starred for Milan and Juventus.', 'Famous for my beard and curling free-kicks.'] },
+  { id: 11, answer: 'Gerrard', clues: ['I captained Liverpool through the 2005 Istanbul comeback.', 'A driving English central midfielder with a thunderous shot.', 'I spent my whole club career at Anfield.'] },
+  { id: 12, answer: 'Henry', clues: ['I was the spearhead of Arsenal\'s "Invincibles".', 'A French striker who won the 1998 World Cup.', 'I am Arsenal\'s all-time leading goalscorer.'] },
+  { id: 13, answer: 'Drogba', clues: ['An Ivorian striker and Chelsea talisman.', 'I scored the equaliser and winning penalty in the 2012 UCL final.', 'My first name is Didier.'] },
+  { id: 14, answer: 'Modric', clues: ['A Croatian midfield maestro.', 'I won the 2018 Ballon d\'Or after reaching the World Cup final.', 'A long-time Real Madrid playmaker.'] },
+  { id: 15, answer: 'Ramos', clues: ['A fierce Spanish centre-back known for late goals.', 'I won the 2010 World Cup with Spain.', 'My 93:20 header rescued Real Madrid in a Champions League final.'] },
+  { id: 16, answer: 'Cannavaro', clues: ['An Italian centre-back and 2006 World Cup-winning captain.', 'I won the Ballon d\'Or that same year, rare for a defender.', 'Nicknamed "The Berlin Wall" after the 2006 final.'] },
+  { id: 17, answer: 'Iniesta', clues: ['I scored the winning goal in the 2010 World Cup final.', 'A Spanish midfield genius from Barcelona\'s academy.', 'Half of the famous Xavi-and-me midfield partnership.'] },
+  { id: 18, answer: 'Xavi', clues: ['The metronome of Spain\'s tiki-taka era.', 'I won the 2010 World Cup and two Euros.', 'A one-club Barcelona midfielder who later became their manager.'] },
+  { id: 19, answer: 'Ibrahimovic', clues: ['A towering, outspoken Swedish striker.', 'Famous for a 30-yard bicycle kick against England.', 'I have played for Ajax, Juventus, Inter, Barcelona, PSG and Milan.'] },
+  { id: 20, answer: 'Lewandowski', clues: ['A clinical Polish centre-forward.', 'I once scored five goals in nine minutes for Bayern Munich.', 'My country\'s all-time leading scorer.'] },
+  { id: 21, answer: 'Kahn', clues: ['A commanding German goalkeeper.', 'I won the Golden Ball at the 2002 World Cup.', 'Bayern Munich\'s "Der Titan".'] },
+  { id: 22, answer: 'Cafu', clues: ['A flying Brazilian right-back.', 'I captained Brazil to the 2002 World Cup title.', 'I played in three straight World Cup finals.'] },
+]
