@@ -32,9 +32,9 @@ Monorepo note: both the client and server import from `shared/`, so deploy with 
 2. Railway runs `npm install --prefix server` (build) and `node server/index.js` (start); `PORT` is injected automatically.
 3. Copy the public service URL (e.g. `https://footytrump-production.up.railway.app`).
 
-**Client → Vercel** (uses `client/vercel.json` SPA rewrite):
-1. Import the repo → set **Root Directory = `client`** (framework auto-detects Vite).
-2. Add env var **`VITE_SERVER_URL`** = your Railway URL.
+**Client → Vercel** (uses the root `vercel.json` — builds the client from the repo root so `shared/` is present):
+1. Import the repo → keep **Root Directory = repo root** (do NOT set it to `client`). The root `vercel.json` sets install/build/output (`client/dist`) + the SPA rewrite.
+2. Add env var **`VITE_SERVER_URL`** = your Railway URL (can be added after Railway; solo + solo-quiz work without it).
 3. Deploy.
 
 ## Milestones
