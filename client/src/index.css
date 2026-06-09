@@ -1,0 +1,15 @@
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body { @apply font-body text-white; }
+
+/* Green striped pitch background used by game screens */
+.pitch-bg {
+  background: repeating-linear-gradient(90deg, #1f7a33 0 34px, #1b6e2e 34px 68px);
+}
+.navy-card {
+  background: linear-gradient(165deg, #1c3566 0%, #10203f 100%);
+  border: 2px solid #e7c95a;
+}
