@@ -11,7 +11,7 @@ export default function Home() {
         <p className="text-slate-100 mt-1">FIFA World Cup 2026 · Trump Cards</p>
         <div className="mt-8 flex flex-col gap-3 w-64 mx-auto">
           <Link to="/solo/setup" className="navy-card rounded-xl py-3 font-display font-bold">⚔️ Play vs CPU</Link>
-          <span className="bg-white/10 rounded-xl py-3 font-display text-slate-300">👥 Online (coming soon)</span>
+          <Link to="/online" className="navy-card rounded-xl py-3 font-display font-bold">👥 Play Online</Link>
           <span className="bg-white/10 rounded-xl py-3 font-display text-slate-300">🧠 Quiz (coming soon)</span>
         </div>
         <p className="text-xs text-slate-200 mt-6">Playing as {me.name}</p>

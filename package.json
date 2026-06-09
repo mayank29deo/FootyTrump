@@ -7,7 +7,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "client": "npm --prefix client run dev",
-    "dev": "npm run client"
+    "server": "npm --prefix server run dev",
+    "dev": "npm run client",
+    "dev:all": "concurrently -n server,client -c green,cyan \"npm --prefix server run dev\" \"npm --prefix client run dev\""
   },
   "devDependencies": {
     "concurrently": "^9.1.0",
