@@ -5,7 +5,8 @@ import { io } from 'socket.io-client'
 // health-check the candidates and connect to whichever the network can actually reach.
 const PRIMARY = import.meta.env.VITE_SERVER_URL || (import.meta.env.DEV ? 'http://localhost:3001' : '')
 const FALLBACK = import.meta.env.VITE_FALLBACK_URL || ''
-export const CANDIDATES = [PRIMARY, FALLBACK].filter(Boolean)
+// dedupe so VITE_SERVER_URL === VITE_FALLBACK_URL collapses to a single server
+export const CANDIDATES = [...new Set([PRIMARY, FALLBACK].filter(Boolean))]
 
 let socket = null
 let activeUrl = CANDIDATES[0] || PRIMARY
@@ -50,9 +51,11 @@ export function resetSocket() {
 export async function resolveServerUrl(onStatus) {
   for (let i = 0; i < CANDIDATES.length; i++) {
     const url = CANDIDATES[i]
-    if (i > 0) onStatus?.('Waking up backup server… (~30s)')
+    const isRender = /onrender\.com/.test(url) // free tier may cold-start (~30s) — give it time, even as primary
+    if (isRender) onStatus?.('Waking up server… (~30s)')
+    else if (i > 0) onStatus?.('Trying backup server…')
     try {
-      const res = await fetch(`${url}/health`, { signal: AbortSignal.timeout(i === 0 ? 6000 : 60000) })
+      const res = await fetch(`${url}/health`, { signal: AbortSignal.timeout(isRender ? 60000 : 8000) })
       if (res.ok) return url
     } catch { /* unreachable — try the next candidate */ }
   }
