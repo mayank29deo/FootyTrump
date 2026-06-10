@@ -58,8 +58,9 @@ export default function OnlineGame() {
                 <PlayerCard card={card}
                   selectable={iAmActive && st.phase === 'active_selecting'}
                   selectedStat={iMustDefend ? attackStat : null}
-                  onPickStat={(stat) => s.pickActive(card.id, stat)} />
-                {iMustDefend && <button onClick={() => s.pickDefend(card.id)} className="mt-2 w-full text-xs font-display font-bold bg-gold text-navy-deep rounded-lg py-1.5">Play ({card.stats[attackStat]})</button>}
+                  onPickStat={(stat) => s.pickActive(card.id, stat)}
+                  onCardClick={iMustDefend ? () => s.pickDefend(card.id) : undefined} />
+                {iMustDefend && <button onClick={() => s.pickDefend(card.id)} className="mt-2 w-full text-xs font-display font-bold bg-gold text-navy-deep rounded-lg py-1.5">Tap card to play ({card.stats[attackStat]})</button>}
               </div>
             ))}
           </div>

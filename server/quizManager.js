@@ -1,9 +1,10 @@
 import { quizQuestions } from '../shared/data/quizQuestions.js'
 import { quizClues } from '../shared/data/quizClues.js'
-import { pick, buildLetterTiles, checkGuess } from '../shared/engine/quizGame.js'
+import { pick, checkGuess, initialReveals, hintOrder, guessRoomScore } from '../shared/engine/quizGame.js'
 import { quizScore } from '../shared/engine/quiz.js'
 
-export const SECONDS = { mcq: 15, guess: 35 }
+export const SECONDS = { mcq: 20, guess: 30 }
+export const MAX_HINTS = 3
 
 export function startQuiz(room, rng = Math.random) {
   const mode = room.quizMode === 'guess' ? 'guess' : 'mcq'
@@ -14,24 +15,48 @@ export function startQuiz(room, rng = Math.random) {
   room.quiz = {
     mode, questions, idx: 0,
     answers: {},
+    hints: {},     // pid -> letter hints used this question
+    reveal: null,  // { preRevealed:[], order:[] } for the current guess question
     scores: Object.fromEntries(room.players.map(p => [p.id, 0])),
     phase: 'question',
     pendingEnd: false,
     clockLeft: 0,
     rng,
   }
+  prepareQuestion(room)
   return room
 }
 
 function currentQ(room) { return room.quiz.questions[room.quiz.idx] }
+
+// reset per-question state; precompute reveal data for guess questions
+function prepareQuestion(room) {
+  room.quiz.answers = {}
+  room.quiz.hints = {}
+  if (room.quiz.mode === 'guess') {
+    const ans = currentQ(room).answer
+    const preRevealed = initialReveals(ans, room.quiz.rng)
+    room.quiz.reveal = { preRevealed, order: hintOrder(ans, preRevealed) }
+  } else {
+    room.quiz.reveal = null
+  }
+}
 
 export function questionPayload(room) {
   const q = currentQ(room)
   const { mode, idx, questions } = room.quiz
   const base = { idx, total: questions.length, seconds: SECONDS[mode], mode }
   if (mode === 'mcq') return { ...base, q: q.q, options: q.options, category: q.category }
-  // guess: tiles built server-side; the answer is NOT sent (no cheating)
-  return { ...base, clues: q.clues, tiles: buildLetterTiles(q.answer, room.quiz.rng), blankCount: q.answer.replace(/[^A-Za-z]/g, '').length }
+  // guess: a mask exposes structure + pre-revealed letters only (hidden letters + the
+  // full answer are never sent — players type, and the hint bulb reveals letters server-side)
+  const ans = q.answer
+  const pre = new Set(room.quiz.reveal.preRevealed)
+  const mask = ans.split('').map((ch, i) => {
+    if (!/[A-Za-z]/.test(ch)) return { ch, fixed: true }
+    return pre.has(i) ? { ch: ch.toUpperCase(), revealed: true } : { revealed: false }
+  })
+  const maxHints = Math.min(MAX_HINTS, room.quiz.reveal.order.length)
+  return { ...base, clues: q.clues, mask, maxHints }
 }
 
 export function recordAnswer(room, playerId, value, atMs) {
@@ -39,6 +64,16 @@ export function recordAnswer(room, playerId, value, atMs) {
   const q = currentQ(room)
   const correct = room.quiz.mode === 'mcq' ? value === q.correctIndex : checkGuess(q.answer, value)
   room.quiz.answers[playerId] = { value, correct, atMs }
+}
+
+// Reveal the next letter for a player (guess only). Returns { index, ch } or null.
+export function useHint(room, playerId) {
+  if (room.quiz.mode !== 'guess' || room.quiz.answers[playerId]) return null
+  const used = room.quiz.hints[playerId] || 0
+  if (used >= MAX_HINTS || used >= room.quiz.reveal.order.length) return null
+  room.quiz.hints[playerId] = used + 1
+  const index = room.quiz.reveal.order[used]
+  return { index, ch: currentQ(room).answer[index].toUpperCase() }
 }
 
 export function everyoneAnswered(room) {
@@ -52,7 +87,12 @@ export function scoreQuestion(room) {
     .sort((a, b) => a[1].atMs - b[1].atMs)
     .map(([pid]) => pid)
   const gained = Object.fromEntries(room.players.map(p => [p.id, 0]))
-  correct.forEach((pid, i) => { gained[pid] = quizScore(playerCount, i + 1) })
+  correct.forEach((pid, i) => {
+    const rank = i + 1
+    gained[pid] = room.quiz.mode === 'guess'
+      ? guessRoomScore(rank, room.quiz.hints[pid] || 0)
+      : quizScore(playerCount, rank)
+  })
   for (const pid of Object.keys(gained)) room.quiz.scores[pid] += gained[pid]
   const q = currentQ(room)
   const answer = room.quiz.mode === 'mcq' ? q.options[q.correctIndex] : q.answer
@@ -62,9 +102,10 @@ export function scoreQuestion(room) {
 
 export function advance(room) {
   room.quiz.idx += 1
-  room.quiz.answers = {}
-  room.quiz.phase = room.quiz.idx >= room.quiz.questions.length ? 'ended' : 'question'
-  return room.quiz.phase
+  if (room.quiz.idx >= room.quiz.questions.length) { room.quiz.phase = 'ended'; return 'ended' }
+  room.quiz.phase = 'question'
+  prepareQuestion(room)
+  return 'question'
 }
 
 export function leaderboard(room) {

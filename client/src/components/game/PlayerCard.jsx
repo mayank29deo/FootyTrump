@@ -9,12 +9,15 @@ const RARITY = {
 }
 const STAT_COLOR = { matches: '#5b9bff', goals: '#ffd24a', assists: '#34d399', tackles: '#a78bfa', saves: '#22d3ee', cleanSheets: '#2dd4bf' }
 
-export default function PlayerCard({ card, selectable = false, selectedStat = null, isWinner = false, onPickStat }) {
+export default function PlayerCard({ card, selectable = false, selectedStat = null, isWinner = false, onPickStat, onCardClick }) {
   if (!card) return null
   const r = RARITY[card.rarity] || RARITY.common
   const initials = card.name.split(' ').map(n => n[0]).join('').slice(0, 2)
   return (
-    <div className={`navy-card rounded-2xl p-3.5 w-[230px] shadow-xl ${isWinner ? 'ring-4 ring-gold scale-105' : ''}`}>
+    <div
+      onClick={onCardClick}
+      className={`navy-card rounded-2xl p-3.5 w-[230px] shadow-xl ${isWinner ? 'ring-4 ring-gold scale-105' : ''} ${onCardClick ? 'cursor-pointer hover:ring-2 hover:ring-gold active:scale-95 transition' : ''}`}
+    >
       <div className="flex justify-between items-center">
         <span className="text-[10px] font-bold tracking-wide px-2 py-0.5 rounded-full" style={{ background: r.color, color: '#10203f' }}>{r.label}</span>
         <span className="text-[11px]" style={{ color: r.color }}>{r.stars}</span>

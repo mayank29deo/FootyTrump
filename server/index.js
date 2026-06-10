@@ -186,6 +186,13 @@ io.on('connection', (socket) => {
     if (qm.everyoneAnswered(room)) finishQuestion(code)
   })
 
+  socket.on('quiz_hint', ({ code, playerId }) => {
+    const room = rm.getRoom(code)
+    if (!room?.quiz || room.quiz.phase !== 'question') return
+    const hint = qm.useHint(room, playerId)
+    if (hint) socket.emit('quiz_hint_letter', { ...hint, hintsLeft: qm.MAX_HINTS - (room.quiz.hints[playerId] || 0) })
+  })
+
   socket.on('select_card_stat', ({ code, playerId, cardId, stat }) => {
     const res = rm.selectCardStat(code, playerId, cardId, stat)
     if (res.error) return socket.emit('error_msg', { message: res.error })

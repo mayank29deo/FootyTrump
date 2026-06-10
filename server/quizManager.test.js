@@ -22,12 +22,34 @@ describe('quizManager', () => {
     expect(p.correctIndex).toBeUndefined()
     expect(p.answer).toBeUndefined()
   })
-  it('questionPayload (guess) sends tiles + blankCount but NOT the answer', () => {
+  it('questionPayload (guess) sends a mask + maxHints but NOT the answer/hidden letters', () => {
     const r = room(['a', 'b'], 'guess')
     const p = qm.questionPayload(r)
-    expect(p.tiles.length).toBeGreaterThan(0)
-    expect(p.blankCount).toBeGreaterThan(0)
+    expect(Array.isArray(p.mask)).toBe(true)
+    expect(p.maxHints).toBeGreaterThan(0)
     expect(p.answer).toBeUndefined()
+    expect(p.tiles).toBeUndefined() // no jumbled letters anymore
+    const hidden = p.mask.filter(m => m.revealed === false)
+    expect(hidden.length).toBeGreaterThan(0)
+    expect(hidden.every(m => m.ch === undefined)).toBe(true) // hidden cells leak no letter
+  })
+  it('useHint reveals one letter at a time, capped at 3', () => {
+    const r = room(['a', 'b'], 'guess')
+    const h1 = qm.useHint(r, 'a'); qm.useHint(r, 'a'); qm.useHint(r, 'a')
+    const h4 = qm.useHint(r, 'a')
+    expect(h1).toHaveProperty('index'); expect(h1).toHaveProperty('ch')
+    expect(h4).toBeNull()
+    expect(r.quiz.hints.a).toBe(3)
+  })
+  it('guess scoring = rank base minus hints (2nd place + 2 hints -> 6)', () => {
+    const r = room(['a', 'b'], 'guess')
+    const ans = r.quiz.questions[0].answer
+    qm.useHint(r, 'b'); qm.useHint(r, 'b')
+    qm.recordAnswer(r, 'a', ans, 1000)
+    qm.recordAnswer(r, 'b', ans, 2000)
+    const res = qm.scoreQuestion(r)
+    expect(res.gained.a).toBe(10)
+    expect(res.gained.b).toBe(6)
   })
   it('scoreQuestion ranks correct answers by speed (10 then 6 for 2 players)', () => {
     const r = room(['a', 'b'])

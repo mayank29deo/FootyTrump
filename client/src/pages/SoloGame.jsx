@@ -67,10 +67,11 @@ export default function SoloGame() {
                       : (iMustDefend ? attackStat : null)
                   }
                   onPickStat={(stat) => pickActiveStat(card.id, stat)}
+                  onCardClick={iMustDefend ? () => pickOpponentCard(card.id) : undefined}
                 />
                 {iMustDefend && (
                   <button onClick={() => pickOpponentCard(card.id)} className="mt-2 w-full text-xs font-display font-bold bg-gold text-navy-deep rounded-lg py-1.5">
-                    Play this card ({card.stats[attackStat]})
+                    Tap card to play ({card.stats[attackStat]})
                   </button>
                 )}
               </div>

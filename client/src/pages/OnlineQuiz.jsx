@@ -22,11 +22,10 @@ export default function OnlineQuiz() {
   const nav = useNavigate()
   const s = useOnlineStore()
   const q = s.quiz
-  const [filled, setFilled] = useState([])
+  const [typed, setTyped] = useState('')
 
   useEffect(() => { if (!q.mode) nav('/online') }, [q.mode, nav])
-  // reset letter tiles when a new guess question arrives
-  useEffect(() => { setFilled([]) }, [q.question?.idx])
+  useEffect(() => { setTyped('') }, [q.question?.idx]) // reset input each new question
 
   if (!q.mode) return null
 
@@ -84,37 +83,59 @@ export default function OnlineQuiz() {
             {answered && !result && <div className="text-center text-slate-300 text-sm mt-3">Answer locked — waiting…</div>}
           </div>
         ) : (
-          <div className="navy-card rounded-2xl p-5 mt-3">
-            <div className="text-xs font-display font-bold text-gold tracking-widest">WHO AM I?</div>
-            <ul className="mt-2 space-y-1.5 text-sm">{question.clues.map((c, i) => <li key={i}>🟢 {c}</li>)}</ul>
-            <div className="flex gap-1.5 justify-center flex-wrap mt-4">
-              {Array.from({ length: question.blankCount }, (_, i) => (
-                <span key={i} className={`w-8 h-10 rounded-md grid place-items-center font-display font-bold text-lg ${filled[i] ? 'bg-pitch text-white' : 'bg-white/10 text-gold border border-gold/40'}`}>{filled[i]?.ch || '_'}</span>
-              ))}
-            </div>
-            {result && <div className="text-center text-pitch-light font-display font-bold mt-2">✓ {result.correctAnswer}</div>}
-            {!answered && !result && (
-              <>
-                <div className="flex gap-1.5 justify-center flex-wrap mt-4">
-                  {question.tiles.map((t, i) => {
-                    const used = filled.some(f => f.i === i)
-                    return <button key={i} disabled={used} onClick={() => filled.length < question.blankCount && setFilled([...filled, { i, ch: t }])}
-                      className={`w-9 h-9 rounded-lg font-display font-bold ${used ? 'bg-navy-deep text-slate-600' : 'bg-gold-trim text-navy-deep'}`}>{t}</button>
-                  })}
-                </div>
-                <div className="flex gap-2 justify-center mt-4">
-                  <button onClick={() => setFilled(filled.slice(0, -1))} disabled={!filled.length} className="bg-white/10 rounded-lg px-4 py-2 font-display disabled:opacity-40">⌫</button>
-                  <button onClick={() => s.submitAnswer(filled.map(f => f.ch).join(''))} disabled={filled.length < question.blankCount} className="bg-gold text-navy-deep rounded-lg px-5 py-2 font-display font-bold disabled:opacity-40">Submit</button>
-                </div>
-              </>
-            )}
-            {answered && !result && <div className="text-center text-slate-300 text-sm mt-3">Answer locked — waiting…</div>}
-          </div>
+          <GuessCard question={question} revealed={q.revealed} hintsLeft={q.hintsLeft} answered={answered} result={result}
+            typed={typed} setTyped={setTyped} onHint={s.useHint} onSubmit={() => typed.trim() && s.submitAnswer(typed.trim())} />
         )}
 
         {result && myGain != null && <div className="text-center font-display font-bold mt-3 text-gold">+{myGain} pts</div>}
         <Leaderboard rows={q.leaderboard} myId={s.myId} />
       </div>
+    </div>
+  )
+}
+
+function GuessCard({ question, revealed, hintsLeft, answered, result, typed, setTyped, onHint, onSubmit }) {
+  const revealedMap = Object.fromEntries((revealed || []).map(r => [r.index, r.ch]))
+  const cell = (m, i) => {
+    if (m.fixed) return m.ch === ' ' ? ' ' : m.ch
+    if (m.revealed) return m.ch
+    if (revealedMap[i]) return revealedMap[i]
+    return '_'
+  }
+  const left = hintsLeft == null ? 0 : hintsLeft
+  return (
+    <div className="navy-card rounded-2xl p-5 mt-3">
+      <div className="text-xs font-display font-bold text-gold tracking-widest">WHO AM I?</div>
+      <ul className="mt-2 space-y-1.5 text-sm">
+        {question.clues.map((c, i) => (
+          <li key={i} className="flex gap-2"><span className="text-white font-bold leading-none mt-0.5">•</span><span>{c}</span></li>
+        ))}
+      </ul>
+
+      <div className="flex gap-1.5 justify-center flex-wrap mt-4">
+        {question.mask.map((m, i) => (
+          <span key={i} className={`min-w-8 h-10 px-1 rounded-md grid place-items-center font-display font-bold text-lg ${m.fixed ? 'bg-transparent' : (cell(m, i) !== '_' ? 'bg-pitch text-white' : 'bg-white/10 text-gold border border-gold/40')}`}>{cell(m, i)}</span>
+        ))}
+      </div>
+      {result && <div className="text-center text-pitch-light font-display font-bold mt-2">✓ {result.correctAnswer}</div>}
+
+      {!answered && !result && (
+        <>
+          <input
+            value={typed}
+            onChange={e => setTyped(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') onSubmit() }}
+            placeholder="Type your answer…"
+            autoFocus
+            className="w-full mt-4 rounded-lg bg-navy-deep px-3 py-2.5 text-center font-display text-lg tracking-wide outline-none focus:ring-2 focus:ring-gold"
+          />
+          <div className="flex gap-2 justify-center mt-3">
+            <button onClick={onHint} disabled={left <= 0} className="bg-white/10 rounded-lg px-4 py-2 font-display disabled:opacity-40">💡 Hint ({left} left · −1 pt)</button>
+            <button onClick={onSubmit} disabled={!typed.trim()} className="bg-gold text-navy-deep rounded-lg px-5 py-2 font-display font-bold disabled:opacity-40">Submit</button>
+          </div>
+        </>
+      )}
+      {answered && !result && <div className="text-center text-slate-300 text-sm mt-3">Answer locked — waiting…</div>}
     </div>
   )
 }

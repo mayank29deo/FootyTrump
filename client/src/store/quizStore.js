@@ -1,11 +1,12 @@
 import { create } from 'zustand'
 import { quizClues } from '../../../shared/data/quizClues.js'
 import { quizQuestions } from '../../../shared/data/quizQuestions.js'
-import { buildLetterTiles, checkGuess, pick, guessScore, mcqScore } from '../../../shared/engine/quizGame.js'
+import { checkGuess, pick, guessScore, mcqScore, initialReveals, hintOrder } from '../../../shared/engine/quizGame.js'
 
 const BEST_KEY = 'footytrump.quizBest'
 const ROUND = 8
 const MCQ_TIME = 12
+const MAX_HINTS = 3
 
 const readBest = () => { try { return JSON.parse(localStorage.getItem(BEST_KEY)) || {} } catch { return {} } }
 const writeBest = (mode, score) => {
@@ -13,12 +14,11 @@ const writeBest = (mode, score) => {
   if (!(best[mode] >= score)) { best[mode] = score; localStorage.setItem(BEST_KEY, JSON.stringify(best)) }
   return best
 }
-const answerLen = (s) => (s || '').replace(/[^A-Za-z]/g, '').length
 
 export const useQuizStore = create((set, get) => ({
   mode: null, queue: [], idx: 0, score: 0, streak: 0, finished: false, best: readBest(),
   // guess state
-  current: null, tiles: [], filled: [], hintsUsed: 1, wrongTries: 0, revealed: false,
+  current: null, revealedIdx: [], hintOrderArr: [], hintsUsed: 0, wrongTries: 0, typed: '', solved: false,
   // mcq state
   picked: null, timeLeft: MCQ_TIME, mcqEndsAt: 0,
 
@@ -33,35 +33,31 @@ export const useQuizStore = create((set, get) => ({
     get()._loadMcq()
   },
 
-  // ── Guess the Footballer ──
+  // ── Guess the Footballer (type + letter hints) ──
   _loadGuess() {
     const c = get().queue[get().idx]
-    set({ current: c, tiles: buildLetterTiles(c.answer), filled: [], hintsUsed: 1, wrongTries: 0, revealed: false })
+    const pre = initialReveals(c.answer)
+    set({ current: c, revealedIdx: [...pre], hintOrderArr: hintOrder(c.answer, pre), hintsUsed: 0, wrongTries: 0, typed: '', solved: false })
   },
-  tapTile(i) {
-    const { filled, tiles, current, revealed } = get()
-    if (revealed || filled.some(f => f.i === i)) return
-    if (filled.length >= answerLen(current.answer)) return
-    set({ filled: [...filled, { i, ch: tiles[i] }] })
+  setTyped(v) { set({ typed: v }) },
+  useHint() {
+    const { hintsUsed, hintOrderArr, revealedIdx, solved } = get()
+    if (solved || hintsUsed >= MAX_HINTS || hintsUsed >= hintOrderArr.length) return
+    set({ revealedIdx: [...revealedIdx, hintOrderArr[hintsUsed]], hintsUsed: hintsUsed + 1 })
   },
-  backspace() { if (!get().revealed) set({ filled: get().filled.slice(0, -1) }) },
-  useHint() { if (get().hintsUsed < 3) set({ hintsUsed: get().hintsUsed + 1 }) },
   submitGuess() {
-    const { filled, current, hintsUsed, wrongTries, streak, score } = get()
-    if (filled.length < answerLen(current.answer)) return
-    const guess = filled.map(f => f.ch).join('')
-    if (checkGuess(current.answer, guess)) {
-      const gained = guessScore({ hintsUsed: hintsUsed - 1, wrongTries, streak })
-      set({ score: score + gained, streak: streak + 1, revealed: true })
+    const { typed, current, hintsUsed, wrongTries, streak, score } = get()
+    if (!typed.trim()) return
+    if (checkGuess(current.answer, typed)) {
+      const gained = guessScore({ hintsUsed, wrongTries, streak })
+      set({ score: score + gained, streak: streak + 1, solved: true })
       setTimeout(() => get()._next(), 1500)
     } else {
-      set({ wrongTries: wrongTries + 1, streak: 0, filled: [] })
+      set({ wrongTries: wrongTries + 1, streak: 0, typed: '' })
     }
   },
 
-  // ── Multiple Choice ──
-  // Wall-clock countdown: timeLeft is DERIVED from mcqEndsAt, so the timer is
-  // immune to duplicate intervals (extra ticks just recompute the same value).
+  // ── Multiple Choice (wall-clock countdown, immune to duplicate intervals) ──
   _loadMcq() { set({ current: get().queue[get().idx], picked: null, timeLeft: MCQ_TIME, mcqEndsAt: Date.now() + MCQ_TIME * 1000 }) },
   tick() {
     const { current, finished, picked, mcqEndsAt } = get()

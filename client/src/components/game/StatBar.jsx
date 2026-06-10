@@ -10,6 +10,7 @@ export default function StatBar({ statKey, value, color, selectable, selected, b
       className={`w-full text-left rounded-md px-2 py-1 transition
         ${selected ? 'bg-gold/20 border border-gold' : 'border border-transparent'}
         ${selectable && !burned ? 'hover:bg-white/5 cursor-pointer' : 'cursor-default'}
+        ${!selectable ? 'pointer-events-none' : ''}
         ${burned ? 'opacity-40' : ''}`}
     >
       <div className="flex justify-between text-[10px] text-slate-300">
