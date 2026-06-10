@@ -4,6 +4,7 @@ import { useOnlineStore } from '../store/onlineStore.js'
 import { getIdentity, setName } from '../lib/identity.js'
 import ShareModal from '../components/lobby/ShareModal.jsx'
 import Button from '../components/ui/Button.jsx'
+import { SERVER_URL, currentTransport } from '../lib/socket.js'
 
 export default function Lobby() {
   const nav = useNavigate()
@@ -84,6 +85,12 @@ export default function Lobby() {
               ? <Button onClick={store.startGame} disabled={store.lobby.players.length < 2} className="w-full mt-4">{store.lobby.players.length < 2 ? 'Waiting for players…' : 'Start game ⚽'}</Button>
               : <p className="text-center text-slate-300 mt-4 text-sm">Waiting for the host to start…</p>}
           </>
+        )}
+        {!store.connected && (
+          <div className="mt-3 pt-2 border-t border-white/10 text-[10px] text-slate-400 break-all leading-relaxed">
+            <div>build v0.5.4 · transport: {currentTransport()} · server: {SERVER_URL}</div>
+            {store.lastError && <div className="text-amber-300">last error: {store.lastError}</div>}
+          </div>
         )}
         <ShareModal open={share} onClose={() => setShare(false)} code={store.lobby?.code} />
       </div>

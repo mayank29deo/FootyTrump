@@ -1,6 +1,10 @@
 import { io } from 'socket.io-client'
 
 const PRIMARY = import.meta.env.VITE_SERVER_URL || 'http://localhost:3001'
+export const SERVER_URL = PRIMARY
+export function currentTransport() {
+  try { return socket?.io?.engine?.transport?.name || '—' } catch { return '—' }
+}
 let socket = null
 
 const OPTIONS = {

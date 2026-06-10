@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { getSocket, emit } from '../lib/socket.js'
 
 export const useOnlineStore = create((set, get) => ({
-  connected: false, code: null, myId: null, lobby: null, state: null, myHand: [],
+  connected: false, lastError: null, code: null, myId: null, lobby: null, state: null, myHand: [],
   phase: null, phaseLeft: null, clockLeft: null, roundResult: null, error: null, finished: false, winnerId: null,
   gameType: 'trump', quizMode: 'mcq',
   quiz: { mode: null, question: null, tick: null, clock: null, result: null, leaderboard: [], ended: false, answered: false, revealed: [], hintsLeft: null },
@@ -12,8 +12,9 @@ export const useOnlineStore = create((set, get) => ({
     if (get().bound) return
     const s = getSocket()
     set({ connected: s.connected }) // sync current state (socket may already be connected)
-    s.on('connect', () => set({ connected: true }))
+    s.on('connect', () => set({ connected: true, lastError: null }))
     s.on('disconnect', () => set({ connected: false }))
+    s.on('connect_error', (err) => set({ lastError: (err && err.message) ? err.message : String(err) }))
     s.on('error_msg', ({ message }) => set({ error: message }))
     s.on('room_created', ({ code, room, myId }) => set({ code, myId, lobby: room, gameType: room.gameType, quizMode: room.quizMode }))
     s.on('room_joined', ({ room, myId }) => set({ code: room.code, myId, lobby: room, gameType: room.gameType, quizMode: room.quizMode }))
