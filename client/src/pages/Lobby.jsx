@@ -25,7 +25,7 @@ export default function Lobby() {
     const quizMode = pick === 'guess' ? 'guess' : 'mcq'
     store.createRoom(me(), timeOption, 'international', gameType, quizMode)
   }
-  const GAMES = [{ k: 'trump', label: '⚔️ Trump Cards' }, { k: 'guess', label: '🔎 Quiz: Guess' }, { k: 'mcq', label: '✅ Quiz: MCQ' }]
+  const GAMES = [{ k: 'trump', label: '⚔️ Trump Cards' }, { k: 'guess', label: '🔎 Quiz: Guess (bingo)' }, { k: 'mcq', label: '✅ Quiz: MCQ' }]
   const join = () => joinCode.trim() && store.joinRoom(joinCode.trim().toUpperCase(), me())
 
   const inRoom = !!store.lobby
@@ -47,13 +47,11 @@ export default function Lobby() {
                 <button key={g.k} onClick={() => setPick(g.k)} className={`flex-1 rounded-lg py-2 text-xs font-display ${pick === g.k ? 'bg-gold text-navy-deep' : 'bg-navy-deep'}`}>{g.label}</button>
               ))}</div>
             </div>
-            {pick === 'trump' && (
-              <div className="mt-4 text-sm">Room time
-                <div className="flex gap-2 mt-1">{[4, 6, 8].map(t => (
-                  <button key={t} onClick={() => setTime(t)} className={`flex-1 rounded-lg py-2 font-display ${timeOption === t ? 'bg-gold text-navy-deep' : 'bg-navy-deep'}`}>{t} min</button>
-                ))}</div>
-              </div>
-            )}
+            <div className="mt-4 text-sm">Room time
+              <div className="flex gap-2 mt-1">{[4, 6, 8].map(t => (
+                <button key={t} onClick={() => setTime(t)} className={`flex-1 rounded-lg py-2 font-display ${timeOption === t ? 'bg-gold text-navy-deep' : 'bg-navy-deep'}`}>{t} min</button>
+              ))}</div>
+            </div>
             <Button onClick={create} className="w-full mt-4">Create room</Button>
             <div className="text-center text-slate-300 my-3 text-sm">or join with a code</div>
             <div className="flex gap-2">
@@ -66,7 +64,7 @@ export default function Lobby() {
         {inRoom && (
           <>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-slate-200">Room <b className="text-gold tracking-widest">{store.lobby.code}</b> · {store.lobby.gameType === 'quiz' ? `Quiz: ${store.lobby.quizMode === 'guess' ? 'Guess' : 'MCQ'}` : `${store.lobby.timeOption} min`}</span>
+              <span className="text-sm text-slate-200">Room <b className="text-gold tracking-widest">{store.lobby.code}</b> · {store.lobby.gameType === 'quiz' ? `Quiz: ${store.lobby.quizMode === 'guess' ? 'Guess (bingo)' : 'MCQ'} · ${store.lobby.timeOption} min` : `${store.lobby.timeOption} min`}</span>
               <button onClick={() => setShare(true)} className="text-sm bg-white/10 rounded-lg px-3 py-1 font-display">Invite</button>
             </div>
             <ul className="mt-3">

@@ -5,7 +5,7 @@ export const useOnlineStore = create((set, get) => ({
   connected: false, code: null, myId: null, lobby: null, state: null, myHand: [],
   phase: null, phaseLeft: null, clockLeft: null, roundResult: null, error: null, finished: false, winnerId: null,
   gameType: 'trump', quizMode: 'mcq',
-  quiz: { mode: null, question: null, tick: null, result: null, leaderboard: [], ended: false, answered: false },
+  quiz: { mode: null, question: null, tick: null, clock: null, result: null, leaderboard: [], ended: false, answered: false },
   bound: false,
 
   bind() {
@@ -26,9 +26,10 @@ export const useOnlineStore = create((set, get) => ({
     s.on('round_result', (rr) => set({ roundResult: rr }))
     s.on('game_ended', ({ winnerId, state }) => set({ finished: true, winnerId, state, roundResult: null }))
     // ── quiz events ──
-    s.on('quiz_started', ({ mode }) => set({ quiz: { mode, question: null, tick: null, result: null, leaderboard: [], ended: false, answered: false } }))
+    s.on('quiz_started', ({ mode }) => set({ quiz: { mode, question: null, tick: null, clock: null, result: null, leaderboard: [], ended: false, answered: false } }))
     s.on('quiz_question', (q) => set({ quiz: { ...get().quiz, question: q, tick: q.seconds, result: null, answered: false } }))
     s.on('quiz_tick', ({ left }) => set({ quiz: { ...get().quiz, tick: left } }))
+    s.on('quiz_clock', ({ left }) => set({ quiz: { ...get().quiz, clock: left } }))
     s.on('answer_received', () => {})
     s.on('quiz_result', ({ gained, correctAnswer, leaderboard }) => set({ quiz: { ...get().quiz, result: { gained, correctAnswer }, leaderboard } }))
     s.on('quiz_ended', ({ leaderboard }) => set({ quiz: { ...get().quiz, ended: true, leaderboard } }))

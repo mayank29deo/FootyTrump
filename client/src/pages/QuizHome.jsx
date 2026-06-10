@@ -15,7 +15,7 @@ export default function QuizHome() {
         <p className="text-slate-100 mt-1 text-sm">Solo practice · beat your best</p>
 
         <button onClick={() => go('guess')} className="navy-card rounded-2xl p-5 w-full mt-6 text-left">
-          <div className="font-display font-bold text-lg text-gold">🔎 Guess the Footballer</div>
+          <div className="font-display font-bold text-lg text-gold">🔎 Guess the Footballer <span className="text-xs text-slate-300 font-normal">(bingo-like feel)</span></div>
           <div className="text-sm text-slate-200 mt-1">3 hints, then build the name from letter tiles.</div>
           <div className="text-xs text-slate-300 mt-2">Best: {best.guess ?? 0}</div>
         </button>

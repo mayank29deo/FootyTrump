@@ -55,9 +55,12 @@ export default function OnlineQuiz() {
   return (
     <div className="pitch-bg min-h-screen p-4">
       <div className="max-w-lg mx-auto">
-        <div className="flex justify-between text-sm font-display">
-          <span>Q {question.idx + 1}/{question.total}</span>
-          <span className={q.tick <= 5 ? 'text-red-400' : ''}>⏱ {q.tick}s</span>
+        <div className="flex justify-between items-center text-sm font-display">
+          <span>Question {question.idx + 1}</span>
+          <div className="flex gap-3">
+            {q.clock != null && <span className={q.clock <= 15 ? 'text-red-400 animate-pulse' : ''}>🕐 {Math.floor(q.clock / 60)}:{String(q.clock % 60).padStart(2, '0')}</span>}
+            <span className={q.tick <= 5 ? 'text-red-400' : ''}>⏱ {q.tick}s</span>
+          </div>
         </div>
 
         {question.mode === 'mcq' ? (

@@ -3,18 +3,21 @@ import { quizClues } from '../shared/data/quizClues.js'
 import { pick, buildLetterTiles, checkGuess } from '../shared/engine/quizGame.js'
 import { quizScore } from '../shared/engine/quiz.js'
 
-export const QUIZ_ROUND = 6
 export const SECONDS = { mcq: 15, guess: 35 }
 
 export function startQuiz(room, rng = Math.random) {
   const mode = room.quizMode === 'guess' ? 'guess' : 'mcq'
   const bank = mode === 'guess' ? quizClues : quizQuestions
-  const questions = pick(bank, Math.min(QUIZ_ROUND, bank.length), rng)
+  // Shuffle the whole bank — the room clock (not a fixed count) decides how many
+  // questions get asked; we just need enough to fill the chosen 4/6/8 minutes.
+  const questions = pick(bank, bank.length, rng)
   room.quiz = {
     mode, questions, idx: 0,
     answers: {},
     scores: Object.fromEntries(room.players.map(p => [p.id, 0])),
     phase: 'question',
+    pendingEnd: false,
+    clockLeft: 0,
     rng,
   }
   return room

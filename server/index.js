@@ -21,8 +21,28 @@ const QUIZ_REVEAL_MS = 3500
 const clearPhase = (code) => { const t = phaseTimers.get(code); if (t) { clearInterval(t.tick); clearTimeout(t.expire); phaseTimers.delete(code) } }
 const stopClock = (code) => { const i = roomClocks.get(code); if (i) { clearInterval(i); roomClocks.delete(code) } }
 const clearQuiz = (code) => { const t = quizTimers.get(code); if (t) { clearInterval(t.tick); clearTimeout(t.expire); quizTimers.delete(code) } }
+const quizClocks = new Map() // code -> interval (overall 4/6/8-min quiz clock)
+const stopQuizClock = (code) => { const i = quizClocks.get(code); if (i) { clearInterval(i); quizClocks.delete(code) } }
 
 // ── Quiz (multiplayer) flow ──────────────────────────────────────────────
+// Overall room clock (4/6/8 min). Questions run back-to-back until it expires;
+// when it hits 0 mid-question, that question finishes, then the quiz ends.
+function startQuizClock(code) {
+  const room = rm.getRoom(code); if (!room?.quiz) return
+  let left = (room.timeOption || 6) * 60
+  room.quiz.clockLeft = left
+  const interval = setInterval(() => {
+    left -= 1
+    const r = rm.getRoom(code)
+    if (!r?.quiz || r.quiz.phase === 'ended') { clearInterval(interval); quizClocks.delete(code); return }
+    r.quiz.clockLeft = left
+    io.to(code).emit('quiz_clock', { left })
+    if (left === 15) io.to(code).emit('last_round_warning')
+    if (left <= 0) { clearInterval(interval); quizClocks.delete(code); r.quiz.pendingEnd = true; io.to(code).emit('quiz_clock', { left: 0 }) }
+  }, 1000)
+  quizClocks.set(code, interval)
+}
+
 function sendQuestion(code) {
   clearQuiz(code)
   const room = rm.getRoom(code); if (!room?.quiz || room.quiz.phase !== 'question') return
@@ -33,15 +53,22 @@ function sendQuestion(code) {
   const expire = setTimeout(() => finishQuestion(code), payload.seconds * 1000)
   quizTimers.set(code, { tick, expire })
 }
+function endQuiz(code) {
+  const room = rm.getRoom(code)
+  if (room?.quiz) room.quiz.phase = 'ended'
+  stopQuizClock(code)
+  io.to(code).emit('quiz_ended', { leaderboard: qm.leaderboard(room) })
+}
 function finishQuestion(code) {
   clearQuiz(code)
   const room = rm.getRoom(code); if (!room?.quiz || room.quiz.phase !== 'question') return
   const result = qm.scoreQuestion(room)
   io.to(code).emit('quiz_result', { gained: result.gained, correctAnswer: result.answer, leaderboard: qm.leaderboard(room) })
   setTimeout(() => {
+    if (room.quiz.pendingEnd) return endQuiz(code)            // clock ran out — last question is done
     const phase = qm.advance(room)
-    if (phase === 'ended') io.to(code).emit('quiz_ended', { leaderboard: qm.leaderboard(room) })
-    else sendQuestion(code)
+    if (phase === 'ended') return endQuiz(code)               // exhausted the bank (fallback)
+    sendQuestion(code)
   }, QUIZ_REVEAL_MS)
 }
 
@@ -137,8 +164,9 @@ io.on('connection', (socket) => {
     if (room.gameType === 'quiz') {
       qm.startQuiz(room)
       room.phase = 'playing'
-      io.to(code).emit('quiz_started', { mode: room.quiz.mode, players: room.players.map(p => ({ id: p.id, name: p.name })) })
+      io.to(code).emit('quiz_started', { mode: room.quiz.mode, timeOption: room.timeOption, players: room.players.map(p => ({ id: p.id, name: p.name })) })
       sendQuestion(code)
+      startQuizClock(code)
       return
     }
 
