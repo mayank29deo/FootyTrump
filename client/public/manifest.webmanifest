@@ -1,0 +1,13 @@
+{
+  "name": "FootyTrump",
+  "short_name": "FootyTrump",
+  "description": "FIFA 2026-themed football trump-card game + quiz",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#10203f",
+  "theme_color": "#10203f",
+  "icons": [
+    { "src": "/icon-192.png", "type": "image/png", "sizes": "192x192" },
+    { "src": "/icon-512.png", "type": "image/png", "sizes": "512x512" }
+  ]
+}
