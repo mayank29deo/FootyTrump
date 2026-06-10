@@ -34,7 +34,13 @@ export default function Lobby() {
   return (
     <div className="pitch-bg min-h-screen grid place-items-center p-6">
       <div className="navy-card rounded-2xl p-6 w-full max-w-sm">
-        <h1 className="font-display text-2xl font-bold text-gold mb-3">Play Online</h1>
+        <div className="flex items-center justify-between mb-3">
+          <h1 className="font-display text-2xl font-bold text-gold">Play Online</h1>
+          <span className={`text-[11px] font-display flex items-center gap-1 ${store.connected ? 'text-pitch-light' : 'text-amber-300'}`}>
+            <span className={`w-2 h-2 rounded-full ${store.connected ? 'bg-pitch-light' : 'bg-amber-300 animate-pulse'}`} />
+            {store.connected ? 'Connected' : 'Connecting…'}
+          </span>
+        </div>
         {store.error && <div className="text-red-300 text-sm mb-2">{store.error} <button className="underline" onClick={store.clearError}>dismiss</button></div>}
 
         {!inRoom && (
@@ -52,11 +58,11 @@ export default function Lobby() {
                 <button key={t} onClick={() => setTime(t)} className={`flex-1 rounded-lg py-2 font-display ${timeOption === t ? 'bg-gold text-navy-deep' : 'bg-navy-deep'}`}>{t} min</button>
               ))}</div>
             </div>
-            <Button onClick={create} className="w-full mt-4">Create room</Button>
+            <Button onClick={create} disabled={!store.connected} className="w-full mt-4">{store.connected ? 'Create room' : 'Connecting…'}</Button>
             <div className="text-center text-slate-300 my-3 text-sm">or join with a code</div>
             <div className="flex gap-2">
               <input value={joinCode} onChange={e => setJoinCode(e.target.value)} placeholder="ABC123" className="flex-1 rounded-lg bg-navy-deep px-3 py-2 uppercase" />
-              <Button variant="secondary" onClick={join}>Join</Button>
+              <Button variant="secondary" onClick={join} disabled={!store.connected || !joinCode.trim()}>Join</Button>
             </div>
           </>
         )}

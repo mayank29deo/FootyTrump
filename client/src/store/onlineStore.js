@@ -11,6 +11,7 @@ export const useOnlineStore = create((set, get) => ({
   bind() {
     if (get().bound) return
     const s = getSocket()
+    set({ connected: s.connected }) // sync current state (socket may already be connected)
     s.on('connect', () => set({ connected: true }))
     s.on('disconnect', () => set({ connected: false }))
     s.on('error_msg', ({ message }) => set({ error: message }))
