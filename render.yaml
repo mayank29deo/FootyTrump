@@ -1,0 +1,14 @@
+# FootyTrump realtime server on Render — the cellular-reachable FALLBACK (same pattern
+# as the cricket game). Render fronts services with Cloudflare, so it's reachable on
+# mobile data where Railway's bare IP is not. Railway stays the fast primary (WiFi/
+# desktop); the client health-checks Railway first and falls back here on cellular.
+# Free tier spins down when idle (~30s cold start on the first connect).
+services:
+  - type: web
+    name: footytrump-server
+    runtime: node
+    region: singapore        # closest free Render region to India
+    plan: free
+    buildCommand: npm install --prefix server
+    startCommand: node server/index.js
+    healthCheckPath: /health

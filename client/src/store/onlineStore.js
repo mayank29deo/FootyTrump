@@ -1,18 +1,25 @@
 import { create } from 'zustand'
-import { getSocket, emit } from '../lib/socket.js'
+import { getSocket, emit, resetSocket, resolveServerUrl, setActiveUrl } from '../lib/socket.js'
 
 export const useOnlineStore = create((set, get) => ({
-  connected: false, lastError: null, code: null, myId: null, lobby: null, state: null, myHand: [],
+  connected: false, connecting: false, connectingMsg: '', lastError: null, code: null, myId: null, lobby: null, state: null, myHand: [],
   phase: null, phaseLeft: null, clockLeft: null, roundResult: null, error: null, finished: false, winnerId: null,
   gameType: 'trump', quizMode: 'mcq',
   quiz: { mode: null, question: null, tick: null, clock: null, result: null, leaderboard: [], ended: false, answered: false, revealed: [], hintsLeft: null },
   bound: false,
 
-  bind() {
-    if (get().bound) return
+  // Health-check the candidate servers and connect to whichever the network can reach
+  // (Railway primary; Render fallback for mobile data) — same approach as the cricket game.
+  async connect() {
+    if (get().bound) { const s = getSocket(); if (s.disconnected) s.connect(); return }
+    set({ connecting: true, connectingMsg: 'Connecting…', lastError: null })
+    resetSocket()
+    const url = await resolveServerUrl((msg) => set({ connectingMsg: msg }))
+    if (!url) { set({ connecting: false, connectingMsg: '', lastError: 'Server unreachable — check your connection and retry' }); return }
+    setActiveUrl(url)
     const s = getSocket()
-    set({ connected: s.connected }) // sync current state (socket may already be connected)
-    s.on('connect', () => set({ connected: true, lastError: null }))
+    set({ connected: s.connected, bound: true })
+    s.on('connect', () => set({ connected: true, connecting: false, connectingMsg: '', lastError: null }))
     s.on('disconnect', () => set({ connected: false }))
     s.on('connect_error', (err) => set({ lastError: (err && err.message) ? err.message : String(err) }))
     s.on('error_msg', ({ message }) => set({ error: message }))
@@ -36,11 +43,11 @@ export const useOnlineStore = create((set, get) => ({
     s.on('quiz_hint_letter', ({ index, ch, hintsLeft }) => set({ quiz: { ...get().quiz, revealed: [...get().quiz.revealed, { index, ch }], hintsLeft } }))
     s.on('quiz_result', ({ gained, correctAnswer, answers, leaderboard }) => set({ quiz: { ...get().quiz, result: { gained, correctAnswer, answers }, leaderboard } }))
     s.on('quiz_ended', ({ leaderboard }) => set({ quiz: { ...get().quiz, ended: true, leaderboard } }))
-    set({ bound: true })
+    s.connect()
   },
 
-  createRoom(player, timeOption, deckType, gameType = 'trump', quizMode = 'mcq') { get().bind(); emit('create_room', { player, timeOption, deckType, gameType, quizMode }) },
-  joinRoom(code, player) { get().bind(); emit('join_room', { code, player }) },
+  createRoom(player, timeOption, deckType, gameType = 'trump', quizMode = 'mcq') { emit('create_room', { player, timeOption, deckType, gameType, quizMode }) },
+  joinRoom(code, player) { emit('join_room', { code, player }) },
   startGame() { emit('start_game', { code: get().code, playerId: get().myId }) },
   pickActive(cardId, stat) { emit('select_card_stat', { code: get().code, playerId: get().myId, cardId, stat }) },
   pickDefend(cardId) { emit('select_opponent_card', { code: get().code, playerId: get().myId, cardId }) },

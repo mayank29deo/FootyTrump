@@ -4,7 +4,7 @@ import { useOnlineStore } from '../store/onlineStore.js'
 import { getIdentity, setName } from '../lib/identity.js'
 import ShareModal from '../components/lobby/ShareModal.jsx'
 import Button from '../components/ui/Button.jsx'
-import { SERVER_URL, currentTransport } from '../lib/socket.js'
+import { getActiveUrl, currentTransport } from '../lib/socket.js'
 
 export default function Lobby() {
   const nav = useNavigate()
@@ -16,7 +16,7 @@ export default function Lobby() {
   const [joinCode, setJoinCode] = useState(params.get('room') || '')
   const [share, setShare] = useState(false)
 
-  useEffect(() => { store.bind() }, [])
+  useEffect(() => { store.connect() }, [])
   useEffect(() => { if (store.state && !store.finished) nav('/online/game') }, [store.state, store.finished, nav])
   useEffect(() => { if (store.quiz?.mode && !store.quiz.ended) nav('/online/quiz') }, [store.quiz?.mode, store.quiz?.ended, nav])
 
@@ -42,6 +42,13 @@ export default function Lobby() {
             {store.connected ? 'Connected' : 'Connecting…'}
           </span>
         </div>
+        {!store.connected && (store.connecting || store.lastError) && (
+          <div className="mb-2 text-xs flex items-center gap-2">
+            {store.connecting
+              ? <span className="text-amber-300">{store.connectingMsg || 'Connecting…'}</span>
+              : <><span className="text-red-300">{store.lastError}</span><button onClick={store.connect} className="underline text-gold font-display">Retry</button></>}
+          </div>
+        )}
         {store.error && <div className="text-red-300 text-sm mb-2">{store.error} <button className="underline" onClick={store.clearError}>dismiss</button></div>}
 
         {!inRoom && (
@@ -88,7 +95,7 @@ export default function Lobby() {
         )}
         {!store.connected && (
           <div className="mt-3 pt-2 border-t border-white/10 text-[10px] text-slate-400 break-all leading-relaxed">
-            <div>build v0.6.0 · transport: {currentTransport()} · server: {SERVER_URL}</div>
+            <div>build v0.6.1 · transport: {currentTransport()} · server: {getActiveUrl()}</div>
             {store.lastError && <div className="text-amber-300">last error: {store.lastError}</div>}
           </div>
         )}
