@@ -3,5 +3,8 @@
   "installCommand": "npm install --prefix client",
   "buildCommand": "npm --prefix client run build",
   "outputDirectory": "client/dist",
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "rewrites": [
+    { "source": "/socket.io/:path*", "destination": "https://footytrump-production.up.railway.app/socket.io/:path*" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
 }

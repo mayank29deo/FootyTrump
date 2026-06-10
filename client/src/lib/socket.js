@@ -1,31 +1,34 @@
 import { io } from 'socket.io-client'
 
-const PRIMARY = import.meta.env.VITE_SERVER_URL || 'http://localhost:3001'
-export const SERVER_URL = PRIMARY
-export function currentTransport() {
-  try { return socket?.io?.engine?.transport?.name || '—' } catch { return '—' }
-}
+// Root cause of "Connecting… forever" on mobile data: the Railway host is IPv4-only,
+// and IPv6-only mobile carriers (e.g. Jio) can't reach it. The page loads because
+// Vercel is dual-stack. Fix: in production the client talks to the SAME origin
+// (Vercel), which proxies /socket.io to Railway via a vercel.json rewrite — so the
+// phone only ever connects to Vercel, which it can reach on any network.
+// Dev connects to the local server directly.
+const PRIMARY = import.meta.env.DEV ? (import.meta.env.VITE_SERVER_URL || 'http://localhost:3001') : undefined
+export const SERVER_URL = PRIMARY || 'same-origin (Vercel→Railway proxy)'
 let socket = null
 
 const OPTIONS = {
   autoConnect: true,
-  // WebSocket FIRST: many mobile-carrier proxies break HTTP long-polling (they buffer
-  // the long-poll response), so polling-first never completes the handshake on cellular.
-  // WSS tunnels straight through. Fall back to polling if a network blocks WebSocket.
-  transports: ['websocket', 'polling'],
-  tryAllTransports: true,
+  // Vercel rewrites can't proxy WebSocket upgrades, so production uses HTTP polling
+  // (works through the proxy and through carrier proxies). Dev connects directly and
+  // can use WebSocket.
+  transports: import.meta.env.DEV ? ['websocket', 'polling'] : ['polling'],
   reconnection: true,
-  reconnectionAttempts: Infinity, // never permanently give up — survives server redeploys / mobile sleeps
+  reconnectionAttempts: Infinity, // never permanently give up — survives redeploys / mobile sleeps
   reconnectionDelay: 800,
   reconnectionDelayMax: 4000,
   timeout: 20000,
 }
 
+export function currentTransport() { try { return socket?.io?.engine?.transport?.name || '—' } catch { return '—' } }
+
 export function getSocket() {
   if (!socket) {
     socket = io(PRIMARY, OPTIONS)
-    // iOS Safari suspends background tabs (freezing the socket). Revive when the
-    // page returns to the foreground or the network comes back.
+    // iOS Safari suspends background tabs; revive on foreground / network return.
     if (typeof window !== 'undefined') {
       const revive = () => { if (socket && socket.disconnected) socket.connect() }
       document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') revive() })
@@ -39,7 +42,6 @@ export function getSocket() {
 export function emit(event, data) {
   const s = getSocket()
   if (s.connected) { s.emit(event, data); return }
-  // not yet connected — send as soon as we are, and make sure we're actually trying to connect
   s.once('connect', () => s.emit(event, data))
-  if (s.disconnected) s.connect() // revive an inactive/exhausted socket so the queued emit can flush
+  if (s.disconnected) s.connect() // revive an inactive socket so the queued emit can flush
 }

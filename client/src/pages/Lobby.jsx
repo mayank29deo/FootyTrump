@@ -88,7 +88,7 @@ export default function Lobby() {
         )}
         {!store.connected && (
           <div className="mt-3 pt-2 border-t border-white/10 text-[10px] text-slate-400 break-all leading-relaxed">
-            <div>build v0.5.4 · transport: {currentTransport()} · server: {SERVER_URL}</div>
+            <div>build v0.6.0 · transport: {currentTransport()} · server: {SERVER_URL}</div>
             {store.lastError && <div className="text-amber-300">last error: {store.lastError}</div>}
           </div>
         )}
