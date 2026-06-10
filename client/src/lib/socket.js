@@ -5,7 +5,11 @@ let socket = null
 
 const OPTIONS = {
   autoConnect: true,
-  transports: ['polling', 'websocket'],
+  // WebSocket FIRST: many mobile-carrier proxies break HTTP long-polling (they buffer
+  // the long-poll response), so polling-first never completes the handshake on cellular.
+  // WSS tunnels straight through. Fall back to polling if a network blocks WebSocket.
+  transports: ['websocket', 'polling'],
+  tryAllTransports: true,
   reconnection: true,
   reconnectionAttempts: Infinity, // never permanently give up — survives server redeploys / mobile sleeps
   reconnectionDelay: 800,
