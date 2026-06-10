@@ -32,7 +32,7 @@ export const useOnlineStore = create((set, get) => ({
     s.on('quiz_clock', ({ left }) => set({ quiz: { ...get().quiz, clock: left } }))
     s.on('answer_received', () => {})
     s.on('quiz_hint_letter', ({ index, ch, hintsLeft }) => set({ quiz: { ...get().quiz, revealed: [...get().quiz.revealed, { index, ch }], hintsLeft } }))
-    s.on('quiz_result', ({ gained, correctAnswer, leaderboard }) => set({ quiz: { ...get().quiz, result: { gained, correctAnswer }, leaderboard } }))
+    s.on('quiz_result', ({ gained, correctAnswer, answers, leaderboard }) => set({ quiz: { ...get().quiz, result: { gained, correctAnswer, answers }, leaderboard } }))
     s.on('quiz_ended', ({ leaderboard }) => set({ quiz: { ...get().quiz, ended: true, leaderboard } }))
     set({ bound: true })
   },

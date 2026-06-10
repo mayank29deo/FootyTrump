@@ -16,7 +16,7 @@ const phaseTimers = new Map() // code -> {tick, expire}
 const roomClocks = new Map()  // code -> interval
 const quizTimers = new Map()  // code -> {tick, expire}
 const REVEAL_MS = 2600
-const QUIZ_REVEAL_MS = 3500
+const QUIZ_REVEAL_MS = 4500 // reveal/buffer screen; does NOT count against the room clock
 
 const clearPhase = (code) => { const t = phaseTimers.get(code); if (t) { clearInterval(t.tick); clearTimeout(t.expire); phaseTimers.delete(code) } }
 const stopClock = (code) => { const i = roomClocks.get(code); if (i) { clearInterval(i); roomClocks.delete(code) } }
@@ -32,9 +32,10 @@ function startQuizClock(code) {
   let left = (room.timeOption || 6) * 60
   room.quiz.clockLeft = left
   const interval = setInterval(() => {
-    left -= 1
     const r = rm.getRoom(code)
     if (!r?.quiz || r.quiz.phase === 'ended') { clearInterval(interval); quizClocks.delete(code); return }
+    if (r.quiz.paused) return // reveal buffer — freeze the room clock, don't consume time
+    left -= 1
     r.quiz.clockLeft = left
     io.to(code).emit('quiz_clock', { left })
     if (left === 15) io.to(code).emit('last_round_warning')
@@ -46,6 +47,7 @@ function startQuizClock(code) {
 function sendQuestion(code) {
   clearQuiz(code)
   const room = rm.getRoom(code); if (!room?.quiz || room.quiz.phase !== 'question') return
+  room.quiz.paused = false // resume the room clock for the answering phase
   const payload = qm.questionPayload(room)
   io.to(code).emit('quiz_question', payload)
   let left = payload.seconds
@@ -63,7 +65,8 @@ function finishQuestion(code) {
   clearQuiz(code)
   const room = rm.getRoom(code); if (!room?.quiz || room.quiz.phase !== 'question') return
   const result = qm.scoreQuestion(room)
-  io.to(code).emit('quiz_result', { gained: result.gained, correctAnswer: result.answer, leaderboard: qm.leaderboard(room) })
+  room.quiz.paused = true // freeze the room clock during the reveal/buffer screen
+  io.to(code).emit('quiz_result', { gained: result.gained, correctAnswer: result.answer, answers: result.answers, leaderboard: qm.leaderboard(room) })
   setTimeout(() => {
     if (room.quiz.pendingEnd) return endQuiz(code)            // clock ran out — last question is done
     const phase = qm.advance(room)

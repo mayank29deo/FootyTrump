@@ -20,6 +20,7 @@ export function startQuiz(room, rng = Math.random) {
     scores: Object.fromEntries(room.players.map(p => [p.id, 0])),
     phase: 'question',
     pendingEnd: false,
+    paused: false,   // true during the reveal buffer — freezes the room clock
     clockLeft: 0,
     rng,
   }
@@ -96,8 +97,10 @@ export function scoreQuestion(room) {
   for (const pid of Object.keys(gained)) room.quiz.scores[pid] += gained[pid]
   const q = currentQ(room)
   const answer = room.quiz.mode === 'mcq' ? q.options[q.correctIndex] : q.answer
+  // each player's own submission (value as typed / option index, + correct flag) for the reveal screen
+  const answers = Object.fromEntries(Object.entries(room.quiz.answers).map(([pid, a]) => [pid, { value: a.value, correct: a.correct }]))
   room.quiz.phase = 'reveal'
-  return { gained, answer, scores: room.quiz.scores }
+  return { gained, answer, answers, scores: room.quiz.scores }
 }
 
 export function advance(room) {

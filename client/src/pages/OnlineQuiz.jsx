@@ -18,6 +18,21 @@ function Leaderboard({ rows, myId }) {
   )
 }
 
+// Reveal/buffer line shown after each question: what you answered + the correct answer.
+function RevealLine({ question, result, myId }) {
+  if (!result) return null
+  const a = result.answers?.[myId]
+  const mine = !a ? null : (question.mode === 'mcq' ? question.options?.[a.value] : a.value)
+  return (
+    <div className="navy-card rounded-xl px-4 py-3 mt-3 text-center">
+      {a
+        ? <div className={`font-display ${a.correct ? 'text-pitch-light' : 'text-red-300'}`}>Your answer: <b>{mine || '—'}</b> {a.correct ? '✓' : '✗'}</div>
+        : <div className="font-display text-slate-300">You didn’t answer in time</div>}
+      {(!a || !a.correct) && <div className="font-display text-gold mt-1">Correct answer: <b>{result.correctAnswer}</b></div>}
+    </div>
+  )
+}
+
 export default function OnlineQuiz() {
   const nav = useNavigate()
   const s = useOnlineStore()
@@ -58,7 +73,7 @@ export default function OnlineQuiz() {
           <span>Question {question.idx + 1}</span>
           <div className="flex gap-3">
             {q.clock != null && <span className={q.clock <= 15 ? 'text-red-400 animate-pulse' : ''}>🕐 {Math.floor(q.clock / 60)}:{String(q.clock % 60).padStart(2, '0')}</span>}
-            <span className={q.tick <= 5 ? 'text-red-400' : ''}>⏱ {q.tick}s</span>
+            {result ? <span className="text-pitch-light">reveal…</span> : <span className={q.tick <= 5 ? 'text-red-400' : ''}>⏱ {q.tick}s</span>}
           </div>
         </div>
 
@@ -88,6 +103,7 @@ export default function OnlineQuiz() {
         )}
 
         {result && myGain != null && <div className="text-center font-display font-bold mt-3 text-gold">+{myGain} pts</div>}
+        <RevealLine question={question} result={result} myId={s.myId} />
         <Leaderboard rows={q.leaderboard} myId={s.myId} />
       </div>
     </div>
@@ -97,7 +113,8 @@ export default function OnlineQuiz() {
 function GuessCard({ question, revealed, hintsLeft, answered, result, typed, setTyped, onHint, onSubmit }) {
   const revealedMap = Object.fromEntries((revealed || []).map(r => [r.index, r.ch]))
   const cell = (m, i) => {
-    if (m.fixed) return m.ch === ' ' ? ' ' : m.ch
+    if (result) return result.correctAnswer[i] === ' ' ? ' ' : result.correctAnswer[i] // reveal full answer
+    if (m.fixed) return m.ch === ' ' ? ' ' : m.ch
     if (m.revealed) return m.ch
     if (revealedMap[i]) return revealedMap[i]
     return '_'
@@ -117,7 +134,6 @@ function GuessCard({ question, revealed, hintsLeft, answered, result, typed, set
           <span key={i} className={`min-w-8 h-10 px-1 rounded-md grid place-items-center font-display font-bold text-lg ${m.fixed ? 'bg-transparent' : (cell(m, i) !== '_' ? 'bg-pitch text-white' : 'bg-white/10 text-gold border border-gold/40')}`}>{cell(m, i)}</span>
         ))}
       </div>
-      {result && <div className="text-center text-pitch-light font-display font-bold mt-2">✓ {result.correctAnswer}</div>}
 
       {!answered && !result && (
         <>
