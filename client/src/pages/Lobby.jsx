@@ -46,7 +46,7 @@ export default function Lobby() {
           <div className="mb-2 text-xs flex items-center gap-2">
             {store.connecting
               ? <span className="text-amber-300">{store.connectingMsg || 'Connecting…'}</span>
-              : <><span className="text-red-300">{store.lastError}</span><button onClick={store.connect} className="underline text-gold font-display">Retry</button></>}
+              : <><span className="text-red-300">{store.lastError}</span><button onClick={store.reconnect} className="underline text-gold font-display">Retry</button></>}
           </div>
         )}
         {store.error && <div className="text-red-300 text-sm mb-2">{store.error} <button className="underline" onClick={store.clearError}>dismiss</button></div>}

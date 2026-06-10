@@ -12,6 +12,7 @@ export const useOnlineStore = create((set, get) => ({
   // (Railway primary; Render fallback for mobile data) — same approach as the cricket game.
   async connect() {
     if (get().bound) { const s = getSocket(); if (s.disconnected) s.connect(); return }
+    if (get().connecting) return // a preflight is already in flight — don't double-register listeners
     set({ connecting: true, connectingMsg: 'Connecting…', lastError: null })
     resetSocket()
     const url = await resolveServerUrl((msg) => set({ connectingMsg: msg }))
@@ -45,6 +46,10 @@ export const useOnlineStore = create((set, get) => ({
     s.on('quiz_ended', ({ leaderboard }) => set({ quiz: { ...get().quiz, ended: true, leaderboard } }))
     s.connect()
   },
+
+  // Force a fresh preflight (re-evaluates Railway vs Render) — used by the Retry button
+  // so a dead/blackholed primary can be escaped to the reachable fallback.
+  reconnect() { resetSocket(); set({ bound: false, connected: false, connecting: false, connectingMsg: '', lastError: null }); get().connect() },
 
   createRoom(player, timeOption, deckType, gameType = 'trump', quizMode = 'mcq') { emit('create_room', { player, timeOption, deckType, gameType, quizMode }) },
   joinRoom(code, player) { emit('join_room', { code, player }) },

@@ -23,16 +23,20 @@ const OPTIONS = {
   timeout: 20000,
 }
 
+// Revive a sleeping socket when iOS returns the tab to the foreground / network returns.
+// Registered ONCE at module load (not per-socket) so repeated reconnects don't leak listeners.
+let revivalWired = false
+function wireRevival() {
+  if (revivalWired || typeof window === 'undefined') return
+  revivalWired = true
+  const revive = () => { if (socket && socket.disconnected) socket.connect() }
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') revive() })
+  window.addEventListener('online', revive)
+  window.addEventListener('focus', revive)
+}
+
 export function getSocket() {
-  if (!socket) {
-    socket = io(activeUrl, OPTIONS)
-    if (typeof window !== 'undefined') {
-      const revive = () => { if (socket && socket.disconnected) socket.connect() }
-      document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') revive() })
-      window.addEventListener('online', revive)
-      window.addEventListener('focus', revive)
-    }
-  }
+  if (!socket) { socket = io(activeUrl, OPTIONS); wireRevival() }
   return socket
 }
 
